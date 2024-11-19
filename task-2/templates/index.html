@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .game-container {
+            text-align: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 20px auto;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #333;
+            font-size: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .game-message {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .restart-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="board">
+            {% for i in range(3) %}
+                {% for j in range(3) %}
+                    <div class="cell" data-row="{{ i }}" data-col="{{ j }}" onclick="makeMove(this)">
+                        {{ board[i][j] }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <div class="game-message">
+            {% if game_over %}
+                <p>Game Over!</p>
+                <button class="restart-button" onclick="restartGame()">Restart</button>
+            {% else %}
+                <p>Your move!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function makeMove(cell) {
+            if (cell.innerText !== '' || {{ game_over|tojson }}) {
+                return;
+            }
+            const row = cell.getAttribute('data-row');
+            const col = cell.getAttribute('data-col');
+            fetch('/play', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `row=${row}&col=${col}`,
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateBoard(data.board);
+                showMessage(data.message);
+                if (data.game_over) {
+                    document.querySelectorAll('.cell').forEach(cell => cell.style.pointerEvents = 'none');
+                }
+            });
+        }
+
+        function updateBoard(board) {
+            const cells = document.querySelectorAll('.cell');
+            let index = 0;
+            board.forEach(row => {
+                row.forEach(cell => {
+                    cells[index].innerText = cell;
+                    index++;
+                });
+            });
+        }
+
+        function showMessage(message) {
+            document.querySelector('.game-message').innerText = message;
+        }
+
+        function restartGame() {
+            fetch('/restart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateBoard(data.board);
+                showMessage("Your move!");
+                document.querySelectorAll('.cell').forEach(cell => cell.style.pointerEvents = 'auto');
+            });
+        }
+    </script>
+</body>
+</html>
